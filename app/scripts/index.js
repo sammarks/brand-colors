@@ -1,6 +1,8 @@
 var companyContainer = document.getElementById('companies'),
     text = document.getElementById('brand-name'),
+    initialText = text.innerHTML,
     hex = document.getElementById('hex'),
+    initialHex = hex.innerHTML,
     search = document.getElementById('search'),
     body = document.body,
 
@@ -71,11 +73,13 @@ var companyContainer = document.getElementById('companies'),
 
   function updateState(event) {
     var name = event.target.innerHTML,
-        color = getStyle(event.target, 'background-color'),
-        hexColor = rgb2hex(color),
-        textColor = getContrastYIQ(hexColor.substring(1));
+        color, hexColor, textColor;
 
     if (event.target.tagName !== 'LI') return;
+      
+    color = getStyle(event.target, 'background-color');
+    hexColor = rgb2hex(color);
+    textColor = getContrastYIQ(hexColor.substring(1));
 
     text.innerHTML = name;
     hex.innerHTML = hexColor;
@@ -85,31 +89,51 @@ var companyContainer = document.getElementById('companies'),
   };
 
   function resetState(){
-    text.innerHTML = 'brand-colors';
-    hex.innerHTML = 'A collection available in sass, less, stylus and css.';
+    text.innerHTML = initialText;
+    hex.innerHTML = initialHex;
 
     body.style.color = 'black';
     body.style.backgroundColor = 'rgba(255,255,255,0.9)';
   }
 
-  search.addEventListener('keyup', function(event){
-    var text = event.target.value.toLowerCase();
+  function setSearchCss(text){
     var search = 'li:not([class*="' + text + '"])';
 
-    for(var i = 0; i < sheet.rules.length; i++) {
+    //check whether .rules exists to support older browsers, and fallback to .cssRules as default.
+    var rulesLength = sheet.rules ? sheet.rules.length : sheet.cssRules.length;
+    for(var i = 0; i < rulesLength; i++) {
       sheet[(sheet.removeRule ? 'removeRule' : 'deleteRule')](0);
     }
 
     if(text.length == 0 ) return;
 
-    sheet[(sheet.addRule ? 'addRule' : 'insertRule')]
-      (search, 'width:0 !important',  0);
+    //function parameters differ for addRule() and insertRule()
+    //check for addRule to support older browsers, use insertRule as default
+    if(sheet.addRule){
+      sheet.addRule(search, 'width:0 !important',  0);
+    }
+    else {
+      sheet.insertRule(search + '{width:0 !important}',  0);
+    }
+  }
+
+  search.addEventListener('keyup', function(event){
+    var text = event.target.value.toLowerCase();
+    setSearchCss(text);
   });
 
+  function checkIfSearchQuery(){
+    var query = document.location.search.split('?search=');
+    if(query.length == 2){
+      setSearchCss(query[1]);
+      search.value = query[1];
+    }
+  }
 
   // Initiate everything;
   companyContainer.addEventListener('mouseover', updateState);
   companyContainer.addEventListener('mouseout', resetState);
+  checkIfSearchQuery();
 
   //clipboard.js implement event delegation iternally
   client = new Clipboard(companyContainer.children, {
@@ -131,7 +155,7 @@ var companyContainer = document.getElementById('companies'),
 
   client.on('error', function(event){
     if(!isIOS){
-      hex.setAttribute('aria-label', 'Press ' + ((isSafari) ? '⌘' : 'CTRL') + '-S to copy');
+      hex.setAttribute('aria-label', 'Press ' + ((isSafari) ? '⌘' : 'CTRL') + '-C to copy');
       hex.classList.add('tooltipped');
       hex.classList.add('tooltipped-s');
 
@@ -146,3 +170,4 @@ var companyContainer = document.getElementById('companies'),
       selectElementContents(hex);
     });
   })
+

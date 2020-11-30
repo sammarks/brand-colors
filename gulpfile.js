@@ -9,6 +9,11 @@ var gulp = require('gulp'),
 requireDir('./gulptasks');
 
 gulp.task('help', g.taskListing);
+gulp.task('dev', ['live-server']);
 gulp.task('dist', ['styles-dist']);
 
+gulp.task('deploy', ['dev-build'] ,function() {
+  return gulp.src(['./.tmp/**/*'])
+    .pipe(g.ghPages());
+});
 
